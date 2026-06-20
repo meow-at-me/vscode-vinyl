@@ -1,0 +1,134 @@
+{
+  "name": "vscode-vinyl",
+  "displayName": "Vinyl Player",
+  "description": "A pixel-art spinning LP record in your sidebar that controls Spotify playback (play/pause/next/prev, playlists).",
+  "version": "0.0.1",
+  "publisher": "meow-at-me",
+  "author": {
+    "name": "meow-at-me",
+    "email": "yoon7k3@gmail.com"
+  },
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meow-at-me/vscode-vinyl.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "spotify",
+    "music",
+    "player",
+    "pixel art",
+    "lofi"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vscodeVinyl",
+          "title": "Vinyl",
+          "icon": "media/activitybar.svg"
+        }
+      ]
+    },
+    "views": {
+      "vscodeVinyl": [
+        {
+          "type": "webview",
+          "id": "vscodeVinyl.player",
+          "name": "LP"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "vscodeVinyl.login",
+        "title": "Vinyl: Connect Spotify",
+        "category": "Vinyl"
+      },
+      {
+        "command": "vscodeVinyl.logout",
+        "title": "Vinyl: Disconnect Spotify",
+        "category": "Vinyl"
+      },
+      {
+        "command": "vscodeVinyl.playPause",
+        "title": "Vinyl: Play / Pause",
+        "category": "Vinyl"
+      },
+      {
+        "command": "vscodeVinyl.next",
+        "title": "Vinyl: Next Track",
+        "category": "Vinyl"
+      },
+      {
+        "command": "vscodeVinyl.prev",
+        "title": "Vinyl: Previous Track",
+        "category": "Vinyl"
+      },
+      {
+        "command": "vscodeVinyl.selectPlaylist",
+        "title": "Vinyl: Choose Playlist",
+        "category": "Vinyl"
+      }
+    ],
+    "configuration": {
+      "title": "Vinyl Player",
+      "properties": {
+        "vscodeVinyl.spotifyClientId": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Your Spotify app **Client ID**. Create a free app at the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard), add the redirect URI shown in the README, and paste the Client ID here."
+        },
+        "vscodeVinyl.redirectPort": {
+          "type": "number",
+          "default": 9876,
+          "description": "Local loopback port used for the Spotify OAuth redirect (http://127.0.0.1:<port>/callback). Must match the redirect URI registered in your Spotify app."
+        },
+        "vscodeVinyl.pollIntervalMs": {
+          "type": "number",
+          "default": 4000,
+          "minimum": 1000,
+          "description": "How often (ms) to poll Spotify for the now-playing state while the view is visible."
+        },
+        "vscodeVinyl.lpSkin": {
+          "type": "string",
+          "enum": [
+            "album",
+            "classic",
+            "pixel"
+          ],
+          "default": "album",
+          "enumDescriptions": [
+            "Show the current album art on the record label",
+            "Classic black vinyl with a red label",
+            "Pixel-art label"
+          ],
+          "description": "Look of the LP record label."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "check-types": "tsc --noEmit",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.0"
+  }
+}
