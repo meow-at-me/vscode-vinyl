@@ -2,7 +2,7 @@
   "name": "vscode-vinyl",
   "displayName": "Vinyl Player",
   "description": "A spinning LP record in your sidebar that controls Spotify playback (play/pause/next/prev, playlists).",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "meow-at-me",
   "author": {
     "name": "meow-at-me",
