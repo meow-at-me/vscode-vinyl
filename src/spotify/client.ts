@@ -1,5 +1,5 @@
 import { SpotifyAuth } from "./auth";
-import { PlayerState, PlaylistItem } from "../types";
+import { PlayerState, PlaylistItem, QueueTrack } from "../types";
 
 const API = "https://api.spotify.com/v1";
 
@@ -10,7 +10,9 @@ interface RawPlayback {
   is_playing: boolean;
   progress_ms: number | null;
   device: { name: string } | null;
+  context: { type: string; uri: string } | null;
   item: {
+    uri: string;
     name: string;
     duration_ms: number;
     artists: { name: string }[];
@@ -49,7 +51,16 @@ export class SpotifyClient {
       throw new SpotifyNotice(`Rate limited by Spotify. Retry in ${retryAfter}s.`);
     }
     if (res.status === 403) {
-      throw new SpotifyNotice("Playback control requires Spotify Premium.");
+      // 403 means different things by endpoint: on player control it's the Premium
+      // requirement; on reads (playlists, etc.) it's forbidden — surface Spotify's reason.
+      if (path.startsWith("/me/player")) {
+        throw new SpotifyNotice("Playback control requires Spotify Premium.");
+      }
+      const detail = await res
+        .json()
+        .then((d) => (d && d.error && d.error.message) || "")
+        .catch(() => "");
+      throw new SpotifyNotice(`Forbidden 403${detail ? ": " + detail : ""}`);
     }
     return res;
   }
@@ -100,6 +111,9 @@ export class SpotifyClient {
       progressMs: data.progress_ms ?? 0,
       durationMs: data.item.duration_ms,
       deviceName: data.device?.name,
+      trackUri: data.item.uri,
+      contextUri: data.context?.uri,
+      contextType: data.context?.type,
     };
   }
 
@@ -128,8 +142,85 @@ export class SpotifyClient {
   previous(): Promise<void> {
     return this.control("POST", "/me/player/previous");
   }
+  seek(positionMs: number): Promise<void> {
+    const ms = Math.max(0, Math.round(positionMs));
+    return this.control("PUT", `/me/player/seek?position_ms=${ms}`);
+  }
   playContext(contextUri: string): Promise<void> {
     return this.control("PUT", "/me/player/play", { context_uri: contextUri });
+  }
+  /** Start playback at a specific track within a context (keeps the playlist queue intact). */
+  playTrackInContext(contextUri: string, trackUri: string): Promise<void> {
+    return this.control("PUT", "/me/player/play", {
+      context_uri: contextUri,
+      offset: { uri: trackUri },
+    });
+  }
+
+  /** Fetch the tracks of a playlist context (paginated) so the user can jump within it. */
+  async getPlaylistTracks(contextUri: string): Promise<{ name: string; tracks: QueueTrack[] }> {
+    const id = this.contextId(contextUri, "playlist");
+    if (!id) {
+      throw new SpotifyNotice("Queue is only available for playlists.");
+    }
+
+    let name = "Playlist";
+    const meta = await this.request(`/playlists/${id}?fields=name`);
+    if (meta.ok) {
+      name = ((await meta.json()) as { name?: string }).name ?? name;
+    }
+
+    // Spotify deprecated GET /playlists/{id}/tracks (403 for development-mode apps as of the
+    // 2026 migration); /items is the current endpoint. Try modern first, fall back to legacy.
+    let lastError: unknown;
+    for (const base of [`/playlists/${id}/items`, `/playlists/${id}/tracks`]) {
+      try {
+        return { name, tracks: await this.collectPlaylistItems(base) };
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new SpotifyNotice("Could not load the playlist queue.");
+  }
+
+  /** Walk a playlist's item pages, tolerating both the new (`item`) and legacy (`track`) shapes. */
+  private async collectPlaylistItems(base: string): Promise<QueueTrack[]> {
+    type RawTrack = { uri?: string; name?: string; artists?: { name: string }[] };
+    const tracks: QueueTrack[] = [];
+    let path: string | null = `${base}?limit=100`;
+    while (path && tracks.length < 500) {
+      const res: Response = await this.request(path);
+      if (!res.ok) {
+        throw new SpotifyNotice(`Could not load the playlist queue (${res.status}).`);
+      }
+      const data = (await res.json()) as {
+        next: string | null;
+        items: { item?: RawTrack | null; track?: RawTrack | null }[];
+      };
+      for (const entry of data.items ?? []) {
+        const t = entry.item ?? entry.track;
+        if (t && t.uri && t.name) {
+          tracks.push({
+            uri: t.uri,
+            name: t.name,
+            artist: (t.artists ?? []).map((a) => a.name).join(", "),
+          });
+        }
+      }
+      path = data.next ? data.next.replace(API, "") : null;
+    }
+    return tracks;
+  }
+
+  /** Extract the id from a `spotify:<type>:<id>` URI, or undefined if the type doesn't match. */
+  private contextId(uri: string | undefined, type: string): string | undefined {
+    if (!uri) {
+      return undefined;
+    }
+    const parts = uri.split(":");
+    return parts.length === 3 && parts[1] === type ? parts[2] : undefined;
   }
 
   async getPlaylists(): Promise<PlaylistItem[]> {

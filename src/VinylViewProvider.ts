@@ -73,20 +73,33 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
           await this.playPause();
           break;
         case "next":
-          await this.client.next();
-          await this.refreshNow();
+          await this.next();
           break;
         case "prev":
-          await this.client.previous();
-          await this.refreshNow();
+          await this.prev();
           break;
         case "requestPlaylists":
           await this.sendPlaylists();
           break;
-        case "playContext":
-          await this.client.playContext(msg.uri);
+        case "requestQueue":
+          await this.sendQueue(msg.uri);
+          break;
+        case "playTrack": {
+          const prev = this.trackKey(this.lastState);
+          await this.client.playTrackInContext(msg.contextUri, msg.trackUri);
+          await this.refreshUntilChanged(prev);
+          break;
+        }
+        case "seek":
+          await this.client.seek(msg.positionMs);
           await this.refreshNow();
           break;
+        case "playContext": {
+          const prev = this.trackKey(this.lastState);
+          await this.client.playContext(msg.uri);
+          await this.refreshUntilChanged(prev);
+          break;
+        }
       }
     } catch (e) {
       this.handleError(e);
@@ -120,8 +133,9 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
 
   async next(): Promise<void> {
     try {
+      const prev = this.trackKey(this.lastState);
       await this.client.next();
-      await this.refreshNow();
+      await this.refreshUntilChanged(prev);
     } catch (e) {
       this.handleError(e);
     }
@@ -129,8 +143,9 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
 
   async prev(): Promise<void> {
     try {
+      const prev = this.trackKey(this.lastState);
       await this.client.previous();
-      await this.refreshNow();
+      await this.refreshUntilChanged(prev);
     } catch (e) {
       this.handleError(e);
     }
@@ -145,8 +160,9 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
         { placeHolder: "Play which playlist?" }
       );
       if (pick) {
+        const prev = this.trackKey(this.lastState);
         await this.client.playContext(pick.uri);
-        await this.refreshNow();
+        await this.refreshUntilChanged(prev);
       }
     } catch (e) {
       this.handleError(e);
@@ -164,16 +180,56 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  private async sendQueue(uri: string): Promise<void> {
+    try {
+      const { name, tracks } = await this.client.getPlaylistTracks(uri);
+      this.post({ type: "queue", uri, name, tracks });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      this.post({ type: "queue", uri, name: `⚠ ${message}`, tracks: [] });
+    }
+  }
+
   private async refreshNow(): Promise<void> {
     const state = await this.client.getPlaybackState();
     this.lastState = state;
     this.post({ type: "state", state });
   }
 
+  /** Identifies the current track so we can detect when it actually changes. */
+  private trackKey(s: PlayerState): string {
+    return `${s.track ?? ""} ${s.artist ?? ""}`;
+  }
+
+  /**
+   * After a track-change action, re-poll with short backoff until the now-playing
+   * track differs from `prevKey`. Spotify's player API is eventually consistent, so
+   * an immediate read right after next/prev/play often still returns the old track.
+   */
+  private async refreshUntilChanged(prevKey: string): Promise<void> {
+    const delaysMs = [0, 250, 500, 800, 1200];
+    for (const delay of delaysMs) {
+      if (delay) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+      const state = await this.client.getPlaybackState();
+      this.lastState = state;
+      this.post({ type: "state", state });
+      if (this.trackKey(state) !== prevKey) {
+        return;
+      }
+    }
+  }
+
   private handleError(e: unknown): void {
     const message = e instanceof Error ? e.message : String(e);
     this.post({ type: "error", message });
-    if (!(e instanceof SpotifyNotice)) {
+    // Transient network blips (request never reached Spotify) shouldn't pop a toast —
+    // the poller recovers on its own. Only surface genuine errors intrusively.
+    const transient = /fetch failed|network|ENOTFOUND|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN/i.test(
+      message
+    );
+    if (!(e instanceof SpotifyNotice) && !transient) {
       vscode.window.showErrorMessage(`Vinyl: ${message}`);
     }
   }
@@ -208,6 +264,7 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
 <body>
   <div id="app">
     <div id="turntable">
+      <div id="art-bg"></div>
       <div id="record" class="paused">
         <div id="label"><div id="label-art"></div></div>
         <div id="hole"></div>
@@ -220,7 +277,11 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
       <div id="artist"></div>
     </div>
 
-    <div id="progress"><div id="progress-fill"></div></div>
+    <div id="progress-row">
+      <span id="time-cur" class="time">00:00</span>
+      <div id="progress"><div id="progress-fill"></div><div id="progress-knob"></div></div>
+      <span id="time-tot" class="time">00:00</span>
+    </div>
 
     <div id="controls">
       <button id="prev" class="ctrl" title="Previous">⏮</button>
@@ -232,10 +293,12 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
 
     <div id="connect-row">
       <button id="connect" class="link">Connect Spotify</button>
-      <button id="playlists-btn" class="link hidden">Playlists ▾</button>
+      <button id="playlists-btn" class="link hidden">Playlists</button>
+      <button id="queue-btn" class="link hidden">Tracks</button>
     </div>
 
     <div id="playlists" class="hidden"></div>
+    <div id="queue" class="hidden"></div>
   </div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>

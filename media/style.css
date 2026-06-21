@@ -1,3 +1,15 @@
+@font-face {
+  font-family: "Jersey10";
+  src: url("Jersey10.ttf") format("truetype");
+  font-display: swap;
+}
+/* even thinner/narrower alternative — set --pixel-font to "Micro5" to use it */
+@font-face {
+  font-family: "Micro5";
+  src: url("Micro5.ttf") format("truetype");
+  font-display: swap;
+}
+
 :root {
   --bg: var(--vscode-sideBar-background, #1e1e1e);
   --fg: var(--vscode-foreground, #ddd);
@@ -5,6 +17,9 @@
   --vinyl: #14141a;
   --vinyl-groove: #23232e;
   --label: #e24e4e;
+  --pixel-font: "Jersey10", "Courier New", monospace;
+  --hair: var(--vscode-widget-border, rgba(255, 255, 255, 0.18));
+  --dim: var(--vscode-descriptionForeground, #9a9a9a);
 }
 
 * {
@@ -14,27 +29,42 @@
 body {
   margin: 0;
   color: var(--fg);
-  font-family: var(--vscode-font-family);
-  font-size: 12px;
-  /* crisp pixel scaling for any bitmap art */
+  font-family: var(--pixel-font);
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: 0.5px;
   image-rendering: pixelated;
+  -webkit-font-smoothing: none;
 }
 
 #app {
-  padding: 14px 10px 18px;
+  padding: 16px 10px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   user-select: none;
 }
 
 /* ---------- Turntable / LP ---------- */
 #turntable {
   position: relative;
-  width: 150px;
-  height: 150px;
+  width: 172px;
+  height: 172px;
   margin-top: 4px;
+}
+
+/* square album cover laid behind the record, lightly blurred — vinyl spins on top of it */
+#art-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(3px) brightness(0.82);
+  image-rendering: auto;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
 }
 
 #record {
@@ -43,19 +73,18 @@ body {
   border-radius: 50%;
   background:
     radial-gradient(circle at center,
-      transparent 0 17%,
-      var(--vinyl) 17% 33%,
-      var(--vinyl-groove) 33% 34%,
-      var(--vinyl) 34% 40%,
-      var(--vinyl-groove) 40% 41%,
-      var(--vinyl) 41% 47%,
-      var(--vinyl-groove) 47% 48%,
-      var(--vinyl) 48% 100%);
+      transparent 0 13%,
+      var(--vinyl) 13% 30%,
+      var(--vinyl-groove) 30% 31%,
+      var(--vinyl) 31% 37%,
+      var(--vinyl-groove) 37% 38%,
+      var(--vinyl) 38% 44%,
+      var(--vinyl-groove) 44% 45%,
+      var(--vinyl) 45% 100%);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-  animation: spin 2.6s linear infinite;
+  animation: spin 5.2s linear infinite;
 }
 
-/* sheen sweep so the spin is visible even on a plain record */
 #record::after {
   content: "";
   position: absolute;
@@ -69,9 +98,10 @@ body {
   animation-play-state: paused;
 }
 
+/* album cover — kept smooth (NOT pixelated) and enlarged */
 #label {
   position: absolute;
-  inset: 30%;
+  inset: 25%;
   border-radius: 50%;
   background: var(--label);
   display: grid;
@@ -85,6 +115,7 @@ body {
   height: 100%;
   background-size: cover;
   background-position: center;
+  image-rendering: auto;
 }
 
 #hole {
@@ -99,13 +130,12 @@ body {
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
 }
 
-/* tonearm: drops onto the record when playing */
 #tonearm {
   position: absolute;
   top: -6px;
   right: -2px;
-  width: 64px;
-  height: 64px;
+  width: 66px;
+  height: 66px;
   background: linear-gradient(135deg, #b9b9c4 40%, #8a8a96 60%);
   clip-path: polygon(82% 0, 100% 12%, 30% 78%, 18% 92%, 8% 82%, 22% 70%);
   transform-origin: 88% 12%;
@@ -119,20 +149,19 @@ body {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 /* ---------- Track info ---------- */
 #trackbox {
   width: 100%;
   text-align: center;
-  min-height: 30px;
+  min-height: 40px;
 }
 
 #title {
-  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.5px;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -151,124 +180,271 @@ body {
 }
 
 #artist {
-  opacity: 0.7;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ---------- Progress ---------- */
+/* ---------- Progress (thin receipt-style bar + times) ---------- */
+#progress-row {
+  width: 96%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time {
+  flex: 0 0 auto;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 36px;
+  text-align: center;
+}
+
 #progress {
-  width: 90%;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--vscode-scrollbarSlider-background, #444);
-  overflow: hidden;
+  position: relative;
+  flex: 1;
+  height: 8px;
+  background: transparent;
+  border: 1px solid var(--hair);
+  cursor: pointer;
+  touch-action: none;
+}
+
+/* a bigger invisible hit area so the thin bar is easy to grab */
+#progress::before {
+  content: "";
+  position: absolute;
+  inset: -7px 0;
 }
 
 #progress-fill {
   height: 100%;
   width: 0%;
-  background: var(--accent);
-  transition: width 0.5s linear;
+  background: var(--bar-color, var(--accent));
+  transition: width 0.4s linear;
 }
 
-/* ---------- Controls ---------- */
+#progress-knob {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 6px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  background: var(--bar-color, var(--accent));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+#progress:hover #progress-knob,
+#progress.scrubbing #progress-knob {
+  opacity: 1;
+  left: var(--knob-x, 0%);
+}
+
+#progress.scrubbing #progress-fill {
+  transition: none;
+}
+
+/* ---------- Controls (minimal icon buttons) ---------- */
 #controls {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
+  margin-top: 2px;
 }
 
 .ctrl {
-  background: transparent;
+  background: none;
   color: var(--fg);
   border: none;
   cursor: pointer;
   font-size: 18px;
   line-height: 1;
-  padding: 4px;
-  border-radius: 6px;
-  opacity: 0.85;
+  padding: 2px;
+  opacity: 0.7;
+  transition: opacity 0.12s, color 0.12s, transform 0.06s;
 }
 
 .ctrl:hover {
   opacity: 1;
-  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+  color: var(--accent);
+}
+
+.ctrl:active {
+  transform: scale(0.88);
 }
 
 .ctrl.big {
-  font-size: 22px;
+  font-size: 26px;
+  opacity: 0.95;
+  color: var(--accent);
 }
 
-/* ---------- Notice / links ---------- */
+/* ---------- Notice ---------- */
 #notice {
   min-height: 14px;
   font-size: 11px;
+  letter-spacing: 0.5px;
   text-align: center;
-  opacity: 0.75;
-  color: var(--vscode-descriptionForeground, #aaa);
+  color: var(--dim);
 }
 
+/* ---------- Buttons row (terminal-style chips) ---------- */
 #connect-row {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 
 .link {
   background: none;
-  border: none;
-  color: var(--accent);
+  border: 1px solid var(--hair);
+  color: var(--fg);
   cursor: pointer;
-  font-size: 11px;
-  padding: 2px 4px;
+  font-family: var(--pixel-font);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
 
 .link:hover {
-  text-decoration: underline;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
-/* ---------- Playlists ---------- */
-#playlists {
+.link.open {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---------- Playlists / Queue ---------- */
+#playlists,
+#queue {
   width: 100%;
-  max-height: 160px;
+  max-height: 190px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  border: 1px solid var(--hair);
 }
 
 .pl-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 6px;
-  border-radius: 4px;
+  padding: 6px 8px;
   cursor: pointer;
+  border-bottom: 1px solid var(--hair);
 }
+
+.pl-item:last-child { border-bottom: none; }
 
 .pl-item:hover {
   background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.08));
 }
 
 .pl-item img {
-  width: 28px;
-  height: 28px;
-  border-radius: 3px;
+  width: 26px;
+  height: 26px;
   object-fit: cover;
   flex: 0 0 auto;
+  image-rendering: auto;
 }
 
 .pl-item .pl-name {
   flex: 1;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .pl-item .pl-count {
-  opacity: 0.6;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+/* ---------- Queue ---------- */
+.q-head {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--hair);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.q-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--hair);
+  border-left: 2px solid transparent;
+}
+
+.q-item:last-child { border-bottom: none; }
+
+.q-item:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.08));
+}
+
+.q-item.playing {
+  border-left-color: var(--accent);
+  background: var(--vscode-list-activeSelectionBackground, rgba(78, 201, 176, 0.12));
+}
+
+.q-item.playing .q-name {
+  color: var(--accent);
+}
+
+.q-num {
+  flex: 0 0 auto;
+  width: 18px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.q-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.q-name {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.q-artist {
   font-size: 10px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hidden {
