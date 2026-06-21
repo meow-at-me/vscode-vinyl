@@ -7,7 +7,7 @@
 </td>
 <td valign="top">
 
-A pixel-art spinning LP in your VS Code sidebar that remote-controls Spotify — play/pause, skip, seek, browse playlists, and jump between tracks while the album art spins.
+A spinning LP in your VS Code sidebar that remote-controls Spotify — play/pause, skip, seek, browse playlists, and jump between tracks while the album art spins.
 
 > Audio plays through your normal Spotify app (desktop/web/phone); this panel is the remote + now-playing display.
 
