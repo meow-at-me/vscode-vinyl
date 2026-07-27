@@ -9,6 +9,8 @@ export interface PlayerState {
   progressMs?: number;
   durationMs?: number;
   deviceName?: string;
+  /** Repeat mode: "off" | "track" | "context". */
+  repeatState?: string;
   /** URI of the currently playing track (for highlighting it in the queue). */
   trackUri?: string;
   /** Playback context the track is playing from, if any (e.g. a playlist). */
@@ -43,6 +45,7 @@ export type InboundMessage =
   | { cmd: "requestPlaylists" }
   | { cmd: "playContext"; uri: string }
   | { cmd: "seek"; positionMs: number }
+  | { cmd: "setRepeat"; state: "off" | "track" | "context" }
   | { cmd: "requestQueue"; uri: string }
   | { cmd: "playTrack"; contextUri: string; trackUri: string };
 

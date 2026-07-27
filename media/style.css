@@ -1,15 +1,3 @@
-@font-face {
-  font-family: "Jersey10";
-  src: url("Jersey10.ttf") format("truetype");
-  font-display: swap;
-}
-/* even thinner/narrower alternative — set --pixel-font to "Micro5" to use it */
-@font-face {
-  font-family: "Micro5";
-  src: url("Micro5.ttf") format("truetype");
-  font-display: swap;
-}
-
 :root {
   --bg: var(--vscode-sideBar-background, #1e1e1e);
   --fg: var(--vscode-foreground, #ddd);
@@ -17,7 +5,7 @@
   --vinyl: #14141a;
   --vinyl-groove: #23232e;
   --label: #e24e4e;
-  --pixel-font: "Jersey10", "Courier New", monospace;
+  --ui-font: var(--vscode-font-family, -apple-system, system-ui, sans-serif);
   --hair: var(--vscode-widget-border, rgba(255, 255, 255, 0.18));
   --dim: var(--vscode-descriptionForeground, #9a9a9a);
 }
@@ -29,12 +17,10 @@
 body {
   margin: 0;
   color: var(--fg);
-  font-family: var(--pixel-font);
-  font-size: 15px;
+  font-family: var(--ui-font);
+  font-size: var(--vscode-font-size, 13px);
+  font-weight: var(--vscode-font-weight, normal);
   line-height: 1.4;
-  letter-spacing: 0.5px;
-  image-rendering: pixelated;
-  -webkit-font-smoothing: none;
 }
 
 #app {
@@ -160,8 +146,8 @@ body {
 }
 
 #title {
-  font-size: 20px;
-  letter-spacing: 0.5px;
+  font-size: 15px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -199,7 +185,6 @@ body {
 .time {
   flex: 0 0 auto;
   font-size: 11px;
-  letter-spacing: 0.5px;
   color: var(--dim);
   font-variant-numeric: tabular-nums;
   min-width: 36px;
@@ -288,11 +273,15 @@ body {
   color: var(--accent);
 }
 
+.ctrl.active {
+  opacity: 1;
+  color: var(--accent);
+}
+
 /* ---------- Notice ---------- */
 #notice {
   min-height: 14px;
   font-size: 11px;
-  letter-spacing: 0.5px;
   text-align: center;
   color: var(--dim);
 }
@@ -310,7 +299,7 @@ body {
   border: 1px solid var(--hair);
   color: var(--fg);
   cursor: pointer;
-  font-family: var(--pixel-font);
+  font-family: var(--ui-font);
   font-size: 12px;
   letter-spacing: 1px;
   text-transform: uppercase;

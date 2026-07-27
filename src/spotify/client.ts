@@ -9,6 +9,7 @@ export class SpotifyNotice extends Error {}
 interface RawPlayback {
   is_playing: boolean;
   progress_ms: number | null;
+  repeat_state: string | null;
   device: { name: string } | null;
   context: { type: string; uri: string } | null;
   item: {
@@ -111,6 +112,7 @@ export class SpotifyClient {
       progressMs: data.progress_ms ?? 0,
       durationMs: data.item.duration_ms,
       deviceName: data.device?.name,
+      repeatState: data.repeat_state ?? "off",
       trackUri: data.item.uri,
       contextUri: data.context?.uri,
       contextType: data.context?.type,
@@ -145,6 +147,9 @@ export class SpotifyClient {
   seek(positionMs: number): Promise<void> {
     const ms = Math.max(0, Math.round(positionMs));
     return this.control("PUT", `/me/player/seek?position_ms=${ms}`);
+  }
+  setRepeat(state: "off" | "track" | "context"): Promise<void> {
+    return this.control("PUT", `/me/player/repeat?state=${state}`);
   }
   playContext(contextUri: string): Promise<void> {
     return this.control("PUT", "/me/player/play", { context_uri: contextUri });

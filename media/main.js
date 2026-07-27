@@ -15,6 +15,7 @@
   const timeCur = $("time-cur");
   const timeTot = $("time-tot");
   const playPauseBtn = $("playpause");
+  const repeatBtn = $("repeat");
   const noticeEl = $("notice");
   const connectBtn = $("connect");
   const playlistsBtn = $("playlists-btn");
@@ -41,10 +42,29 @@
   let seekLockUntil = 0;
   let seekTrackKey = "";
 
+  let repeatState = "off";
+
   // ---- send commands ----
-  $("prev").addEventListener("click", () => vscode.postMessage({ cmd: "prev" }));
+  $("prev").addEventListener("click", () => {
+    // Like a normal music app: mid-song (>3s) → restart current track; otherwise → previous track.
+    if (durationMs && currentMs() > 3000) {
+      baseProgressMs = 0;
+      baseAt = performance.now();
+      seekLockUntil = performance.now() + 3000;
+      seekTrackKey = trackKey();
+      vscode.postMessage({ cmd: "seek", positionMs: 0 });
+      paint();
+    } else {
+      vscode.postMessage({ cmd: "prev" });
+    }
+  });
   $("next").addEventListener("click", () => vscode.postMessage({ cmd: "next" }));
   playPauseBtn.addEventListener("click", () => vscode.postMessage({ cmd: "playPause" }));
+  repeatBtn.addEventListener("click", () => {
+    // cycle: off -> context (repeat all) -> track (repeat one) -> off
+    const next = repeatState === "off" ? "context" : repeatState === "context" ? "track" : "off";
+    vscode.postMessage({ cmd: "setRepeat", state: next });
+  });
   connectBtn.addEventListener("click", () => {
     if (connectBtn.dataset.mode === "logout") {
       vscode.postMessage({ cmd: "logout" });
@@ -150,6 +170,15 @@
     playPauseBtn.textContent = on ? "❚❚" : "▶";
   }
 
+  function renderRepeat(state) {
+    repeatState = state || "off";
+    // 🔂 = repeat one (track), 🔁 = repeat all (context) / off
+    repeatBtn.textContent = repeatState === "track" ? "🔂" : "🔁";
+    repeatBtn.classList.toggle("active", repeatState !== "off");
+    repeatBtn.title =
+      repeatState === "track" ? "Repeat: one" : repeatState === "context" ? "Repeat: all" : "Repeat: off";
+  }
+
   let curTrackName = "";
   let curArtist = "";
   function trackKey() {
@@ -172,6 +201,7 @@
     }
 
     setSpinning(!!s.isPlaying);
+    renderRepeat(s.repeatState);
     curTrackName = s.track || "";
     curArtist = s.artist || "";
 

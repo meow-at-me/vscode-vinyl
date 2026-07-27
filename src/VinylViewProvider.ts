@@ -94,6 +94,10 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
           await this.client.seek(msg.positionMs);
           await this.refreshNow();
           break;
+        case "setRepeat":
+          await this.client.setRepeat(msg.state);
+          await this.refreshNow();
+          break;
         case "playContext": {
           const prev = this.trackKey(this.lastState);
           await this.client.playContext(msg.uri);
@@ -143,9 +147,16 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
 
   async prev(): Promise<void> {
     try {
-      const prev = this.trackKey(this.lastState);
-      await this.client.previous();
-      await this.refreshUntilChanged(prev);
+      // Like a normal music app: mid-song → restart current track; near the very
+      // start (<3s) → jump to the previous track.
+      if ((this.lastState.progressMs ?? 0) > 3000) {
+        await this.client.seek(0);
+        await this.refreshNow();
+      } else {
+        const prev = this.trackKey(this.lastState);
+        await this.client.previous();
+        await this.refreshUntilChanged(prev);
+      }
     } catch (e) {
       this.handleError(e);
     }
@@ -287,6 +298,7 @@ export class VinylViewProvider implements vscode.WebviewViewProvider {
       <button id="prev" class="ctrl" title="Previous">⏮</button>
       <button id="playpause" class="ctrl big" title="Play / Pause">▶</button>
       <button id="next" class="ctrl" title="Next">⏭</button>
+      <button id="repeat" class="ctrl" title="Repeat">🔁</button>
     </div>
 
     <div id="notice"></div>
