@@ -1,9 +1,9 @@
-# 🎵 Vinyl Player
+# 🎵 Spotify Player for VSCode
 
 <table>
 <tr>
 <td width="40%" valign="top">
-<img src="https://raw.githubusercontent.com/meow-at-me/vscode-vinyl/main/docs/screenshot.png" alt="Vinyl Player spinning an LP in the VS Code sidebar" width="100%">
+<img src="https://raw.githubusercontent.com/meow-at-me/vscode-vinyl/main/docs/screenshot.png" alt="Spotify Player for VSCode spinning an LP in the VS Code sidebar" width="100%">
 </td>
 <td valign="top">
 
