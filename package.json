@@ -2,7 +2,7 @@
   "name": "vscode-vinyl",
   "displayName": "Spotify Player for VSCode",
   "description": "A spinning LP record in your sidebar that controls Spotify playback (play/pause/next/prev, playlists).",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "meow-at-me",
   "author": {
     "name": "meow-at-me",

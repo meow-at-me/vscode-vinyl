@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4] - 2026-07-27
+
+- Renamed the extension to "Spotify Player for VSCode".
+- Use the editor's own UI font (`--vscode-font-family`/`-size`/`-weight`) instead of the bundled pixel fonts; the `Jersey10`/`Micro5` `.ttf` assets are gone.
+- New repeat button, cycling off → repeat all → repeat one.
+- Previous button now restarts the current track when more than 3s in, like a normal music app.
+
 ## [0.0.1] - 2026-06-20
 
 Initial release.
